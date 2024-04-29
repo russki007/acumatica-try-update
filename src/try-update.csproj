@@ -1,0 +1,52 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Version>1.0.1</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Interfaces\**" />
+    <EmbeddedResource Remove="Interfaces\**" />
+    <None Remove="Interfaces\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="AnalyzerFinderHelpers.cs" />
+    <Compile Remove="AnalyzerFormatter.cs" />
+    <Compile Remove="AnalyzerReferenceInformationProvider.cs" />
+    <Compile Remove="AnalyzerRunner.cs" />
+    <Compile Remove="AnalyzersAndFixers.cs" />
+    <Compile Remove="AnalyzerVersion.cs" />
+    <Compile Remove="CodeAnalysisResult.cs" />
+    <Compile Remove="CodeFormatter.cs" />
+    <Compile Remove="Extensions.cs" />
+    <Compile Remove="ICodeFormatter.cs" />
+    <Compile Remove="SolutionCodeFixApplier.cs" />
+  </ItemGroup>
+ 
+  <ItemGroup>
+    <PackageReference Include="Acuminator.Analyzers" Version="3.1.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Build" ExcludeAssets="Runtime" PrivateAssets="all" Version="17.9.5">
+      <IncludeAssets>compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Build.Framework" ExcludeAssets="Runtime" PrivateAssets="all" Version="17.9.5">
+      <IncludeAssets>compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Build.Locator" Version="1.7.8" />
+    
+    
+    <PackageReference Include="Microsoft.CodeAnalysis" Version="4.9.2" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="4.9.2" />
+    <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+  </ItemGroup>
+
+</Project>

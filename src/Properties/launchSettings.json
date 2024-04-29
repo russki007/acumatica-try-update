@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "dmak007.fixer": {
+      "commandName": "Project",
+      "commandLineArgs": "C:\\src\\natasha\\myob\\code\\Source\\App\\MYOB.AdvancedLive.Core\\MYOB.AdvancedLive.Core.csproj --apply-changes -r C:\\src\\CodeFix ",
+      "workingDirectory": "$(SolutionDir)"
+    }
+  }
+}
