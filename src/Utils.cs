@@ -3,13 +3,69 @@ using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics.CodeAnalysis;
+using System.CommandLine;
 
 namespace russki007;
 
-class Utils
+static class Utils
 {
-	// Used to exclude dnx projects
-	private const string DnxProjectExtension = ".xproj";
+	public static (bool isSolution, string workspacePath) FindWorkspace(string searchDirectory, string? workspacePath = null)
+	{
+		if (!string.IsNullOrEmpty(workspacePath))
+		{
+			if (!Path.IsPathRooted(workspacePath))
+			{
+				workspacePath = Path.GetFullPath(workspacePath, searchDirectory);
+			}
+
+			return Directory.Exists(workspacePath)
+				? FindWorkspace(workspacePath!) 
+				: FindFile(workspacePath!); 
+		}
+
+		var foundSolution = FindMatchingFile(searchDirectory, FindSolutionFiles, $"Multipl solution files found in the specifie directory '{searchDirectory}. Specify which to use with the workspace argument.");
+		var foundProject = FindMatchingFile(searchDirectory, FindProjectFiles, $"Multipl project files found in the specifie directory '{searchDirectory}. Specify which to use with the workspace argument.");
+
+		if (!string.IsNullOrEmpty(foundSolution) && !string.IsNullOrEmpty(foundProject))
+		{
+			throw new FileNotFoundException($"Both a project file and solution file found in '{searchDirectory}'. Specify which to use with the workspace argument.");
+		}
+
+		if (!string.IsNullOrEmpty(foundSolution))
+		{
+			return (true, foundSolution!); // IsNullOrEmpty is not annotated on .NET Core 2.1
+		}
+
+		if (!string.IsNullOrEmpty(foundProject))
+		{
+			return (false, foundProject!); // IsNullOrEmpty is not annotated on .NET Core 2.1
+		}
+
+		throw new FileNotFoundException($"Could not find valid project or solution file in '{searchDirectory}'. Specify which to use with the workspac argument.");
+	}
+
+	private static IEnumerable<string> FindSolutionFiles(string basePath) => Directory.EnumerateFileSystemEntries(basePath, "*.sln", SearchOption.TopDirectoryOnly);
+
+	private static IEnumerable<string> FindProjectFiles(string basePath) => Directory.EnumerateFileSystemEntries(basePath, "*.*proj", SearchOption.TopDirectoryOnly);
+
+	private static string? FindMatchingFile(string searchBase, Func<string, IEnumerable<string>> fileSelector, string multipleFilesFoundError)
+	{
+		if (!Directory.Exists(searchBase))
+		{
+			return null;
+		}
+
+		var files = fileSelector(searchBase).ToList();
+		if (files.Count > 1)
+		{
+			throw new FileNotFoundException(string.Format(multipleFilesFoundError, searchBase));
+		}
+
+		return files.Count == 1
+			? files[0]
+			: null;
+	}
+
 
 	public static async Task<Workspace?> LoadWorkspaceAsync(
 		string solutionOrProjectPath,
@@ -18,7 +74,7 @@ class Utils
 		CancellationToken cancellationToken)
 	{
 
-		var (isSolution, workspaceFilePath) = FindFile(solutionOrProjectPath);
+		var (isSolution, workspaceFilePath) = FindWorkspace(solutionOrProjectPath,solutionOrProjectPath);
 
 
 		var properties = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -80,8 +136,8 @@ class Utils
 		var workspaceExtension = Path.GetExtension(workspacePath);
 		var isSolution = workspaceExtension.Equals(".sln", StringComparison.OrdinalIgnoreCase) || workspaceExtension.Equals(".slnf", StringComparison.OrdinalIgnoreCase);
 		var isProject = !isSolution
-			&& workspaceExtension.EndsWith("proj", StringComparison.OrdinalIgnoreCase)
-			&& !workspaceExtension.Equals(DnxProjectExtension, StringComparison.OrdinalIgnoreCase);
+			&& workspaceExtension.EndsWith("proj", StringComparison.OrdinalIgnoreCase);
+			
 
 		if (!isSolution && !isProject)
 		{
@@ -129,11 +185,18 @@ class Utils
 		}
 	}
 
+
 	public static string EnsureTrailingSlash(string path)
 		=> !string.IsNullOrEmpty(path) &&
 			path[^1] != Path.DirectorySeparatorChar
 			? path + Path.DirectorySeparatorChar
 			: path;
+
+	public static Argument<string> DefaultToCurrentDirectory(this Argument<string> arg)
+	{
+		arg.SetDefaultValueFactory(() => EnsureTrailingSlash(Directory.GetCurrentDirectory()));
+		return arg;
+	}
 
 
 	public static bool IsPlatformReferenced(Project project, string assemblyName)

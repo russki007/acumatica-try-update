@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using System.CommandLine;
 using System.CommandLine.IO;
 using System.CommandLine.Parsing;
+using Microsoft.CodeAnalysis.Formatting;
 using static russki007.Utils;
 
 namespace russki007;
@@ -13,7 +14,7 @@ public class Program
 {
 	public static async Task<int> Main(string[] args)
 	{
-		var slnOrProjectArgument = new Argument<string> { Arity = ArgumentArity.ZeroOrOne, Description = "The project or solution file to operate on. If a file is not specified, the command will search the current directory for one." };
+		Argument<string> slnOrProjectArgument = new Argument<string> { Name = "Workspace", Arity = ArgumentArity.ZeroOrOne, Description = "The project or solution file to operate on. If a file is not specified, the command will search the current directory for one." }.DefaultToCurrentDirectory();
 		var reportPathOption = new Option<string>(["--report", "-r"], getDefaultValue: () => EnsureTrailingSlash(Directory.GetCurrentDirectory())) { Arity = ArgumentArity.ZeroOrOne, Description = "Accepts a file path which if provided will produce a json report in the given directory." };
 		var applyChanges = new Option<bool>("--apply-changes", description: "No code changes will be performed unless this option is set; instead, only a report will be generated.", getDefaultValue: () => false);
 
@@ -41,8 +42,17 @@ public class Program
 
 		logger.LogDebug("Using MSBuild.exe located in '{0}'", msBuildPath);
 
-
-		var workspace = await LoadWorkspaceAsync(solutionOrProjectFilePath, false, logger, cancellationToken);
+		Workspace? workspace = null;
+		try
+		{
+			workspace = await LoadWorkspaceAsync(solutionOrProjectFilePath, false, logger, cancellationToken);
+		}
+		catch (FileNotFoundException ex)
+		{
+			logger.LogError(ex.Message);
+			return 1;
+		}
+		
 		var solution = workspace?.CurrentSolution;
 
 		if (solution is null)
@@ -110,10 +120,10 @@ public class Program
 					{
 						logger.LogInformation($"Saving file: {document.FilePath}");
 
-						//var formattedRootNode = Formatter.Format(treeWithMigratedDac.GetRoot(), workspace);
-						//SourceText newText = formattedRootNode.GetText();
+						var formattedRootNode = Formatter.Format(treeWithMigratedDac.GetRoot(), workspace);
+						SourceText newText = formattedRootNode.GetText();
 
-						SourceText newText = treeWithMigratedDac.GetText();
+						//SourceText newText = treeWithMigratedDac.GetText();
 						using (var writer = new StreamWriter(document.FilePath, append: false, encoding: text.Encoding))
 						{
 							newText.Write(writer);
